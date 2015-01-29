@@ -33,9 +33,11 @@ wsServer.on('request', function(request) {
 				var connection = request.accept('test', request.origin);
 				
 				
-				
+				//TODO put to send message
 				var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
 				connection.sendUTF(JSON.stringify(tmpJson));
+
+				//
 				console.log((new Date()) + 'connect accept,orgin is :' + request.origin);
 				//setTimeout(function (){connection.close()},5000);
 
