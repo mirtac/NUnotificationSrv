@@ -8,7 +8,7 @@ var bodyParser = require('body-parser');
 var app=express();
 
 var userSave= {};
-var onlineUsers = [];
+var onlineUsers = {};
 var usePort = 3009;
 
 /*var server = http.createServer(function(request, response) {
@@ -37,18 +37,32 @@ app.post('/notice/send/',function(request, response){
 								noticeInfo = JSON.parse(body);
 						}
 						catch(e){
-								console.log("json parse fail,user is "+request.url);
+								var str = "json parse fail,user is "+request.url;
+								console.log(str);
 								console.log(body);
+								response.write(str);
+								response.end(body);
 								return;
 						}
 						/*TODO check send from our service*/
 						response.writeHead(200);
-						var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
 						var str = "";
+						var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
 						for(var i in noticeInfo.users){
-								onlineUsers[ noticeInfo.users[i] ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
-								console.log((new Date()) + 'ws notice send, get from: ' + request.url+"[user]:"+noticeInfo[i].uid);
-								str += "[" + noticeInfo.users[i] + "]\n";
+								if(onlineUsers[ noticeInfo.users[i].uid ]){
+										var tmpJson = {};
+										if(! (noticeInfo.users[i].uid && noticeInfo.users[i].notificationNum )) continue;
+										tmpJson.notificationNum = noticeInfo.users[i].notificationNum;
+										if( noticeInfo.users[i].title ) {
+												tmpJson.title = noticeInfo.users[i].title;
+										}
+										if( noticeInfo.users[i].message ) {
+												tmpJson.message = noticeInfo.users[i].message;
+										}
+										onlineUsers[ noticeInfo.users[i].uid ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
+										console.log((new Date()) + 'ws notice send, get from: ' + request.url+"[user]:"+noticeInfo.users[i].uid);
+										str += "[" + noticeInfo.users[i] + "]\n";
+								}
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
 						//response.write(util.inspect(url.parse(request.url,true).query));
@@ -67,21 +81,26 @@ app.post('/users/getAll/',function(request, response){
 						});
 				request.on('end', function () {
 						var noticeInfo;
-						try{
+						/*try{
 								noticeInfo = JSON.parse(body);
 						}
 						catch(e){
-								console.log("json parse fail,user is "+request.url);
+								var str = "json parse fail,user is "+request.url;
+								console.log(str);
 								console.log(body);
+								response.write(str);
+								response.end(body);
 								return;
-						}
+						}*/
 						/*TODO check send from our service*/
 						response.writeHead(200);
 						var tmpJson = {};
 						tmpJson.users = [];
 						var str = "";
 						for(var i in onlineUsers){
-								tmpJson.users.push(onlineUsers[ i ].uid);
+								if(onlineUsers[i]){
+										tmpJson.users.push(onlineUsers[ i ].uid);
+								}
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
 						//response.write(util.inspect(url.parse(request.url,true).query));
@@ -176,7 +195,13 @@ wsServer.on('request', function(request) {
 				return;
 				}*/
 
-				var connection = request.accept('notify', request.origin);
+
+
+				try{
+						var connection = request.accept('notify', request.origin);
+				}catch(e){return;}
+
+				var userId=undefined;
 				
 				
 				//TODO put to send message
@@ -200,12 +225,13 @@ wsServer.on('request', function(request) {
 						}
 						if(recObj.type && recObj.type == "verify"){
 								/*TODO auth for user*/
-								onlineUsers[recObj.uid]={};
-								onlineUsers[recObj.uid].connection=connection;
-								onlineUsers[recObj.uid].type="ws";
-								onlineUsers[recObj.uid].uid=recObj.uid;
+								userId = recObj.uid
+								onlineUsers[userId]={};
+								onlineUsers[userId].uid=userId;
+								onlineUsers[userId].connection=connection;
+								onlineUsers[userId].type="ws";
 								/*TODO set other user info*/
-								console.log(onlineUsers[recObj.uid].uid);
+								console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
 
 
 						}
@@ -213,7 +239,9 @@ wsServer.on('request', function(request) {
 						}
 						});
 				connection.on('close', function(reasonCode, description) {
-						    console.log((new Date()) + 'connect close');
+						    console.log((new Date()) + 'connect close[' + userId+"]");
+						    onlineUsers[userId] = null;
+
 						        /*other close work*/ 
 				});
 				});
