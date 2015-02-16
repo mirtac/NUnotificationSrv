@@ -47,7 +47,7 @@ app.post('/notice/send/',function(request, response){
 						/*TODO check send from our service*/
 						response.writeHead(200);
 						var str = "";
-						var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
+						//var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
 						for(var i in noticeInfo.users){
 								if(onlineUsers[ noticeInfo.users[i].uid ]){
 										var tmpJson = {};
@@ -61,7 +61,7 @@ app.post('/notice/send/',function(request, response){
 										}
 										onlineUsers[ noticeInfo.users[i].uid ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
 										console.log((new Date()) + 'ws notice send, get from: ' + request.url+"[user]:"+noticeInfo.users[i].uid);
-										str += "[" + noticeInfo.users[i] + "]\n";
+										str += "[" + JSON.stringify(noticeInfo.users[i]) + "]\n";
 								}
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
@@ -205,8 +205,6 @@ wsServer.on('request', function(request) {
 				
 				
 				//TODO put to send message
-				var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
-				connection.sendUTF(JSON.stringify(tmpJson));
 
 				//
 				console.log((new Date()) + 'connect accept,orgin is :' + request.origin);
@@ -224,7 +222,11 @@ wsServer.on('request', function(request) {
 						console.log((new Date()) + 'NOTJSON-get text: ' + message.utf8Data);
 						}
 						if(recObj.type && recObj.type == "verify"){
-								/*TODO auth for user*/
+								/*testing*/
+								var tmpJson = {title:"["+recObj.uid+"]xtitle",message:(new Date())+"",notificationNum:15};
+								connection.sendUTF(JSON.stringify(tmpJson));
+								/*testing end*/
+								/*TODO auth for user and check json format*/
 								userId = recObj.uid
 								onlineUsers[userId]={};
 								onlineUsers[userId].uid=userId;
