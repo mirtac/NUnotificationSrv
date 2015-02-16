@@ -47,11 +47,15 @@ app.post('/notice/send/',function(request, response){
 						/*TODO check send from our service*/
 						response.writeHead(200);
 						var str = "";
+						var results = {send:0,success:[],fail:[]};
 						//var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
 						for(var i in noticeInfo.users){
 								if(onlineUsers[ noticeInfo.users[i].uid ]){
 										var tmpJson = {};
-										if(! (noticeInfo.users[i].uid && noticeInfo.users[i].notificationNum )) continue;
+										if(! (noticeInfo.users[i].uid && noticeInfo.users[i].notificationNum )){
+												results.fail.push(noticeInfo.users[i].uid);
+												continue;
+										}
 										tmpJson.notificationNum = noticeInfo.users[i].notificationNum;
 										if( noticeInfo.users[i].title ) {
 												tmpJson.title = noticeInfo.users[i].title;
@@ -60,17 +64,24 @@ app.post('/notice/send/',function(request, response){
 												tmpJson.message = noticeInfo.users[i].message;
 										}
 										onlineUsers[ noticeInfo.users[i].uid ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
+										
+										results.send++;
+										results.success.push(noticeInfo.users[i].uid);
+										
 										console.log((new Date()) + 'ws notice send, get from: ' + request.url+"[user]:"+noticeInfo.users[i].uid);
 										str += "[" + JSON.stringify(noticeInfo.users[i]) + "]\n";
+								}else{
+										results.fail.push(noticeInfo.users[i].uid);
 								}
+
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
 						//response.write(util.inspect(url.parse(request.url,true).query));
-						response.write(str);
+						response.write(JSON.stringify( results ));
 						response.end();
 				});
 });
-app.post('/users/getAll/',function(request, response){
+app.get('/users/getAll/',function(request, response){
 				var body = '';
 				request.on('data', function (data) {
 						body += data;
