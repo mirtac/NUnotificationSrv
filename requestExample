@@ -1,0 +1,14 @@
+
+get all user
+method:get;
+url:
+http://140.123.101.185:3009/users/getAll/
+post data: //not need
+
+
+notify users
+method:post
+url:
+http://140.123.101.185:3009/notice/send/
+post data:
+{"users":[{"uid":34,"notificationNum":112,"title":"yooo"}],"type":"ws"}
