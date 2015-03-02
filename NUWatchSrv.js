@@ -68,7 +68,7 @@ app.post('/notice/send/',function(request, response){
 										results.send++;
 										results.success.push(noticeInfo.users[i].uid);
 										
-										console.log((new Date()) + 'ws notice send, get from: ' + request.url+"[user]:"+noticeInfo.users[i].uid);
+										console.log((new Date()) + 'ws notice send, get from: ' + request.connection.remoteAddress + "[user]:"+noticeInfo.users[i].uid);
 										str += "[" + JSON.stringify(noticeInfo.users[i]) + "]\n";
 								}else{
 										results.fail.push(noticeInfo.users[i].uid);
@@ -210,7 +210,10 @@ wsServer.on('request', function(request) {
 
 				try{
 						var connection = request.accept('notify', request.origin);
-				}catch(e){return;}
+				}catch(e){
+						console.log("connection fail");
+						return;
+				}
 
 				var userId=undefined;
 				
@@ -218,7 +221,7 @@ wsServer.on('request', function(request) {
 				//TODO put to send message
 
 				//
-				console.log((new Date()) + 'connect accept,orgin is :' + request.origin);
+				console.log((new Date()) + 'connect accept,orgin is :' + connection.remoteAddress);
 				//setTimeout(function (){connection.close()},5000);
 
 				/* ... */
