@@ -164,7 +164,6 @@ app.get('/id/get/',function(request, response){
 				console.log((new Date()) + 'normal get request' );
 						//response.setHeader('Content-Type', 'application/json');
 				response.writeHead(200);
-				if(idCnt>10000)idCnt=0;
 				response.write(idCnt+"");
 				idCnt++;
 						//response.jsonp(userSave[queryData.uid]);
