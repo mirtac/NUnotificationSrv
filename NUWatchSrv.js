@@ -1,6 +1,7 @@
 var WebSocketServer = require('websocket').server;
 var http = require('http');
 
+var request = require('request');
 var util = require('util');
 var url = require('url');
 var express = require('express');
@@ -20,6 +21,36 @@ var usePort = 3009;
 		            response.end();
 });*/
 var server = http.createServer(app);
+var userVerify= function(userInfo,connection){
+		/* just verify by yourself*/
+		/* example: send request to check*/
+		var options = {
+			uri: 'http://www.cs.ccu.edu.tw/~cht99u/true.json',
+			//method: 'POST',
+			method: 'GET'
+			//body: '',
+	 		//headers: {
+			//	 'content-type': 'text/plain',
+	 		//}
+		};
+		request(options, function(error, response, body){
+				var result ;
+				console.log(body);
+				result = JSON.parse(body);
+				if(!result.verify){
+						connection.close();
+						return;
+				}
+						userId = recObj.uid
+						onlineUsers[userId]={};
+						onlineUsers[userId].uid=userId;
+						onlineUsers[userId].connection=connection;
+						onlineUsers[userId].type="ws";
+						/*TODO set other user info*/
+						console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
+		});
+
+};
 app.set('jsonp callback name');
 app.use(bodyParser.json());
 app.post('/notice/send/',function(request, response){
@@ -120,77 +151,6 @@ app.get('/users/getAll/',function(request, response){
 						response.end();
 				});
 });
-app.post('/tabs/save/',function(request, response){
-				var body = '';
-				request.on('data', function (data) {
-						body += data;
-
-						if (body.length > 1e6){//prevent too big
-								request.connection.destroy();
-						}
-						});
-				request.on('end', function () {
-						var jsonData;
-						try{
-								jsonData = JSON.parse(body);
-						}
-						catch(e){
-								console.log("json parse fail,user is "+request.url);
-						}
-						//console.log("??"+body+"!!");return;
-						/*for(var i=0;i<jsonData.urls.length;i++){
-								if(jsonData.urls){
-										try{
-												console.log(jsonData.urls[i].title);
-										}catch(e){
-												console.log("wrong at save loop:"+i);
-										console.log(JSON.stringify(body));
-												break;
-										}
-								}
-								else{
-										console.log(JSON.stringify(body));
-								}
-						}*/
-						userSave[jsonData.userIdentify] = jsonData;
-				console.log((new Date()) + 'normal save request' + request.url+"[user]:"+jsonData.userIdentify);
-				response.writeHead(200);
-				response.write(jsonData.userIdentify+" save success!");
-				//response.write(util.inspect(url.parse(request.url,true).query));
-				response.end();
-				});
-});
-app.get('/tabs/get/',function(request, response){
-				queryData=url.parse(request.url,true).query;
-				var body = '';
-				request.on('data', function (data) {
-						body += data;
-						if (body.length > 1e6){//prevent too big
-								request.connection.destroy();
-						}
-						});
-				request.on('end', function () {
-						});
-				console.log((new Date()) + 'normal get request' + request.url+"[user]:"+queryData.uid);
-				if(userSave.hasOwnProperty(queryData.uid)){
-						/*response.write(queryData.uid+"get:");
-						for(var i=0;i<userSave[queryData.uid].urls.length;i++){
-								response.write(userSave[queryData.uid].urls[i].title+"@@@");
-								response.write(userSave[queryData.uid].urls[i].url+"<br/>");
-								response.write("\nlo::"+userSave[queryData.uid].urls[i].scrollLocation+"\n");
-						}*/
-						//response.setHeader('Content-Type', 'application/json');
-						//response.writeHead(200);
-						//response.write(JSON.stringify(userSave[queryData.uid]));
-						response.jsonp(userSave[queryData.uid]);
-						
-				}else{
-						response.writeHead(200);
-						response.write("no user:"+queryData.uid);
-				}
-				//response.write(util.inspect());
-				response.end();
-});
 server.listen(usePort, function() {
 		    console.log((new Date()) + 'run on port:' + usePort);
 });
@@ -217,12 +177,8 @@ wsServer.on('request', function(request) {
 
 				var userId=undefined;
 				
-				
-				//TODO put to send message
-
 				//
 				console.log((new Date()) + 'connect accept,orgin is :' + connection.remoteAddress);
-				//setTimeout(function (){connection.close()},5000);
 
 				/* ... */
 				connection.on('message', function(message) {
@@ -235,22 +191,19 @@ wsServer.on('request', function(request) {
 						}catch(e){
 						console.log((new Date()) + 'NOTJSON-get text: ' + message.utf8Data);
 						}
-						if(recObj.type && recObj.type == "verify"){
-								/*testing*/
-								var tmpJson = {title:"["+recObj.uid+"]xtitle",message:(new Date())+"",notificationNum:15};
-								connection.sendUTF(JSON.stringify(tmpJson));
-								/*testing end*/
-								/*TODO auth for user and check json format*/
-								userId = recObj.uid
-								onlineUsers[userId]={};
-								onlineUsers[userId].uid=userId;
-								onlineUsers[userId].connection=connection;
-								onlineUsers[userId].type="ws";
-								/*TODO set other user info*/
-								console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
-
-
+						try{
+								userVerify(recObj,connection); //TODO open it!
+						}catch(e){
+								console.log('userVerify error' + JSON.stringify(e));
+								connection.close();
+								return;
 						}
+								/*testing*/
+						var tmpJson = {title:"["+recObj.uid+"]xtitle",message:(new Date())+"",notificationNum:15};
+						connection.sendUTF(JSON.stringify(tmpJson));
+								/*testing end*/
+
+
 						/*handle text which received*/
 						}
 						});
