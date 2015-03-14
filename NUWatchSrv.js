@@ -9,6 +9,8 @@ var bodyParser = require('body-parser');
 var app=express();
 
 var userSave= {};
+var connectionId=0;
+var connections=[];
 var onlineUsers = {};
 var usePort = 3009;
 
@@ -21,7 +23,7 @@ var usePort = 3009;
 		            response.end();
 });*/
 var server = http.createServer(app);
-var userVerify= function(userInfo,connection){
+var userVerify= function(userInfo,connection,connId){
 		/* just verify by yourself*/
 		/* example: send request to check*/
 		var options = {
@@ -44,7 +46,13 @@ var userVerify= function(userInfo,connection){
 						userId = recObj.uid
 						onlineUsers[userId]={};
 						onlineUsers[userId].uid=userId;
-						onlineUsers[userId].connection=connection;
+						connections[connId] = userId;
+						if(!onlineUsers[userId].connections){
+								onlineUsers[userId].connections=[];
+								onlineUsers[userId].connections.push(connection);
+						}else{
+								onlineUsers[userId].connections.push(connection);
+						}
 						onlineUsers[userId].type="ws";
 						/*TODO set other user info*/
 						console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
@@ -94,7 +102,13 @@ app.post('/notice/send/',function(request, response){
 										if( noticeInfo.users[i].message ) {
 												tmpJson.message = noticeInfo.users[i].message;
 										}
-										onlineUsers[ noticeInfo.users[i].uid ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
+										
+										if(onlineUsers[ noticeInfo.users[i].uid ] && onlineUsers[ noticeInfo.users[i].uid ].connections){
+												for(var j in onlineUsers[ noticeInfo.users[i].uid ].connections){
+														onlineUsers[ noticeInfo.users[i].uid ].connections[j].sendUTF(JSON.stringify(tmpJson));
+														}
+														//onlineUsers[ noticeInfo.users[i].uid ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
+										}
 										
 										results.send++;
 										results.success.push(noticeInfo.users[i].uid);
@@ -175,7 +189,7 @@ wsServer.on('request', function(request) {
 						return;
 				}
 
-				var userId=undefined;
+				var connId=++connectionId;
 				
 				//
 				console.log((new Date()) + 'connect accept,orgin is :' + connection.remoteAddress);
@@ -192,7 +206,7 @@ wsServer.on('request', function(request) {
 						console.log((new Date()) + 'NOTJSON-get text: ' + message.utf8Data);
 						}
 						try{
-								userVerify(recObj,connection); //TODO open it!
+								userVerify(recObj,connection,connId); //TODO open it!
 						}catch(e){
 								console.log('userVerify error' + JSON.stringify(e));
 								connection.close();
@@ -208,8 +222,15 @@ wsServer.on('request', function(request) {
 						}
 						});
 				connection.on('close', function(reasonCode, description) {
-						    console.log((new Date()) + 'connect close[' + userId+"]");
-						    onlineUsers[userId] = null;
+						    console.log((new Date()) + 'connect close[' + connections[connId]+"]");
+
+						    if(onlineUsers[connections[connId]] && onlineUsers[connections[connId]].connections && onlineUsers[connections[connId]].connections.length==0){
+						    		onlineUsers[connections[connId]] = null;
+							}else if(onlineUsers[connections[connId]]){
+									var connectionIndex = onlineUsers[connections[connId]].connections.indexOf(connection);
+									onlineUsers[connections[connId]].connections.splice(connectionIndex, 1);
+							}
+							connections.splice(connId,1);
 
 						        /*other close work*/ 
 				});
