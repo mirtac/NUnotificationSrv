@@ -2,7 +2,6 @@ var WebSocketServer = require('websocket').server;
 var http = require('http');
 
 var request = require('request');
-var util = require('util');
 var url = require('url');
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -14,14 +13,6 @@ var connections=[];
 var onlineUsers = {};
 var usePort = 3009;
 
-/*var server = http.createServer(function(request, response) {
-		    console.log((new Date()) + 'normal http request' + request.url);
-		        response.writeHead(200);
-		    //    response.write(util.inspect(request));
-		        response.write(request.data);
-		    //    response.write(util.inspect(url.parse(request.url,true).query));
-		            response.end();
-});*/
 var server = http.createServer(app);
 var userVerify= function(userInfo,connection,connId){
 		/* just verify by yourself*/
@@ -87,7 +78,6 @@ app.post('/notice/send/',function(request, response){
 						response.writeHead(200);
 						var str = "";
 						var results = {send:0,success:[],fail:[]};
-						//var tmpJson = {title:"xtitle",message:(new Date())+"",notificationNum:15};
 						for(var i in noticeInfo.users){
 								if(onlineUsers[ noticeInfo.users[i].uid ]){
 										var tmpJson = {};
@@ -107,7 +97,6 @@ app.post('/notice/send/',function(request, response){
 												for(var j in onlineUsers[ noticeInfo.users[i].uid ].connections){
 														onlineUsers[ noticeInfo.users[i].uid ].connections[j].sendUTF(JSON.stringify(tmpJson));
 														}
-														//onlineUsers[ noticeInfo.users[i].uid ].connection.sendUTF(JSON.stringify(tmpJson));//TODO adjust to good format
 										}
 										
 										results.send++;
@@ -121,7 +110,6 @@ app.post('/notice/send/',function(request, response){
 
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
-						//response.write(util.inspect(url.parse(request.url,true).query));
 						response.write(JSON.stringify( results ));
 						response.end();
 				});
@@ -137,17 +125,6 @@ app.get('/users/getAll/',function(request, response){
 						});
 				request.on('end', function () {
 						var noticeInfo;
-						/*try{
-								noticeInfo = JSON.parse(body);
-						}
-						catch(e){
-								var str = "json parse fail,user is "+request.url;
-								console.log(str);
-								console.log(body);
-								response.write(str);
-								response.end(body);
-								return;
-						}*/
 						/*TODO check send from our service*/
 						response.writeHead(200);
 						var tmpJson = {};
@@ -159,7 +136,6 @@ app.get('/users/getAll/',function(request, response){
 								}
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
-						//response.write(util.inspect(url.parse(request.url,true).query));
 						console.log((new Date()) + 'request for get all users id' + request.url);
 						response.write( JSON.stringify( tmpJson ) );
 						response.end();
@@ -206,29 +182,33 @@ wsServer.on('request', function(request) {
 						console.log((new Date()) + 'NOTJSON-get text: ' + message.utf8Data);
 						}
 						try{
-								userVerify(recObj,connection,connId); //TODO open it!
+								userVerify(recObj,connection,connId);
 						}catch(e){
 								console.log('userVerify error' + JSON.stringify(e));
 								connection.close();
 								return;
 						}
-								/*testing*/
-						var tmpJson = {title:"["+recObj.uid+"]xtitle",message:(new Date())+"",notificationNum:15};
+								/*//TODO remove it   testing*/
+						var tmpJson = {title:"["+recObj.uid+"]",message:"login time: "+(new Date()),notificationNum:0};
 						connection.sendUTF(JSON.stringify(tmpJson));
 								/*testing end*/
 
 
-						/*handle text which received*/
+						/*TODO handle text which received*/
 						}
 						});
 				connection.on('close', function(reasonCode, description) {
 						    console.log((new Date()) + 'connect close[' + connections[connId]+"]");
 
+							if(onlineUsers[connections[connId]]){
+									var connectionIndex;
+									if(onlineUsers[connections[connId]].connections){
+											connectionIndex = onlineUsers[connections[connId]].connections.indexOf(connection);
+											onlineUsers[connections[connId]].connections.splice(connectionIndex, 1);
+									}
+							}
 						    if(onlineUsers[connections[connId]] && onlineUsers[connections[connId]].connections && onlineUsers[connections[connId]].connections.length==0){
 						    		onlineUsers[connections[connId]] = null;
-							}else if(onlineUsers[connections[connId]]){
-									var connectionIndex = onlineUsers[connections[connId]].connections.indexOf(connection);
-									onlineUsers[connections[connId]].connections.splice(connectionIndex, 1);
 							}
 							connections.splice(connId,1);
 
