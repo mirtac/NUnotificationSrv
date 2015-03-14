@@ -13,6 +13,8 @@ var connections=[];
 var onlineUsers = {};
 var usePort = 3009;
 
+var debug = true;
+
 var server = http.createServer(app);
 var userVerify= function(userInfo,connection,connId){
 		/* just verify by yourself*/
@@ -28,7 +30,6 @@ var userVerify= function(userInfo,connection,connId){
 		};
 		request(options, function(error, response, body){
 				var result ;
-				console.log(body);
 				result = JSON.parse(body);
 				if(!result.verify){
 						connection.close();
@@ -46,7 +47,7 @@ var userVerify= function(userInfo,connection,connId){
 						}
 						onlineUsers[userId].type="ws";
 						/*TODO set other user info*/
-						console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
+						if(debug)console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
 		});
 
 };
@@ -102,7 +103,7 @@ app.post('/notice/send/',function(request, response){
 										results.send++;
 										results.success.push(noticeInfo.users[i].uid);
 										
-										console.log((new Date()) + 'ws notice send, get from: ' + request.connection.remoteAddress + "[user]:"+noticeInfo.users[i].uid);
+										if(debug)console.log((new Date()) + 'ws notice send, get from: ' + request.connection.remoteAddress + "[user]:"+noticeInfo.users[i].uid);
 										str += "[" + JSON.stringify(noticeInfo.users[i]) + "]\n";
 								}else{
 										results.fail.push(noticeInfo.users[i].uid);
@@ -136,7 +137,7 @@ app.get('/users/getAll/',function(request, response){
 								}
 						}
 						//onlineUsers[noticeInfo.uid] = ;//jsonData;
-						console.log((new Date()) + 'request for get all users id' + request.url);
+						if(debug)console.log((new Date()) + 'request for get all users id' + request.url);
 						response.write( JSON.stringify( tmpJson ) );
 						response.end();
 				});
@@ -168,18 +169,20 @@ wsServer.on('request', function(request) {
 				var connId=++connectionId;
 				
 				//
-				console.log((new Date()) + 'connect accept,orgin is :' + connection.remoteAddress);
+				if(debug)console.log((new Date()) + 'connect accept,orgin is :' + connection.remoteAddress);
 
 				/* ... */
 				connection.on('message', function(message) {
 						if (message.type == 'utf8') {
 						//console.log((new Date()) + 'get text: ' + message.utf8Data);
-						try{//test
-						recObj = JSON.parse(message.utf8Data);
-						console.log((new Date()) + 'JSON-get : ' + message.utf8Data);
-
-						}catch(e){
-						console.log((new Date()) + 'NOTJSON-get text: ' + message.utf8Data);
+						if(debug){
+								try{//test
+								recObj = JSON.parse(message.utf8Data);
+								console.log((new Date()) + 'JSON-get : ' + message.utf8Data);
+								
+								}catch(e){
+										console.log((new Date()) + 'NOTJSON-get text: ' + message.utf8Data);
+								}
 						}
 						try{
 								userVerify(recObj,connection,connId);
@@ -198,7 +201,7 @@ wsServer.on('request', function(request) {
 						}
 						});
 				connection.on('close', function(reasonCode, description) {
-						    console.log((new Date()) + 'connect close[' + connections[connId]+"]");
+						    if(debug)console.log((new Date()) + 'connect close[' + connections[connId]+"]");
 
 							if(onlineUsers[connections[connId]]){
 									var connectionIndex;
