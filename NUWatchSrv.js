@@ -1,6 +1,6 @@
 var WebSocketServer = require('websocket').server;
 var http = require('http');
-
+var fs = require('fs');
 var request = require('request');
 var url = require('url');
 var express = require('express');
@@ -11,7 +11,8 @@ var userSave= {};
 var connectionId=0;
 var connections=[];
 var onlineUsers = {};
-var usePort = 3009;
+var SRVINFO = require('./nunotification.json');
+var usePort = SRVINFO.port;
 
 var debug = true;
 
@@ -35,7 +36,7 @@ var userVerify= function(userInfo,connection,connId){
 						connection.close();
 						return;
 				}
-						userId = recObj.uid
+						userId = userInfo.uid
 						onlineUsers[userId]={};
 						onlineUsers[userId].uid=userId;
 						connections[connId] = userId;
@@ -47,7 +48,12 @@ var userVerify= function(userInfo,connection,connId){
 						}
 						onlineUsers[userId].type="ws";
 						/*TODO set other user info*/
-						if(debug)console.log("userOnline:  "+onlineUsers[recObj.uid].uid);//##test
+						if(debug){
+								console.log("userOnline:  "+onlineUsers[userInfo.uid].uid);//##test
+								for(k in onlineUsers){
+										console.log(JSON.stringify(k));
+								}
+						}
 		});
 
 };
@@ -151,7 +157,7 @@ wsServer = new WebSocketServer({
 		        autoAcceptConnections: false
 });
 wsServer.on('request', function(request) {
-				/*if (!verifyRequest(request)) {
+				/*if (!verifyRequest(request)) { //TODO blacklist or other thing
 				request.reject();   
 				console.log((new Date()) + 'reject connect,orgin is :' + request.origin);
 				return;
